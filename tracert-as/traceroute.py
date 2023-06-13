@@ -3,8 +3,8 @@ import socket
 import struct
 import re
 import subprocess
-import ipwhois.exceptions
-from ipwhois import IPWhois
+
+from ipwhois import IPWhois, ipwhois
 
 
 def tracing(host):
@@ -62,13 +62,21 @@ def print_node(result):
 
 
 def is_local_address(address):
-    ip = socket.gethostbyname(socket.gethostname())
-    netmask = socket.inet_ntoa(
-        struct.pack('>I', (0xffffffff << (32 - 24)) & 0xffffffff))
-    ip_binary = struct.unpack('>I', socket.inet_aton(ip))[0]
-    netmask_binary = struct.unpack('>I', socket.inet_aton(netmask))[0]
-    address_binary = struct.unpack('>I', socket.inet_aton(address))[0]
-    return (ip_binary & netmask_binary) == (address_binary & netmask_binary)
+    segments = [int(x) for x in address.split('.')]
+
+    # 10.0.0.0 — 10.255.255.255
+    if segments[0] == 10:
+        return True
+    # 192.168.0.0 — 192.168.255.255
+    if segments[0] == 192 and segments[1] == 168:
+        return True
+    # 100.64.0.0 — 100.127.255.255
+    if segments[0] == 100 and 127 >= segments[1] >= 64:
+        return True
+    # 172.16.0.0 — 172.31.255.255
+    if segments[0] == 172 and 31 >= segments[1] >= 16:
+        return True
+    return False
 
 
 if __name__ == '__main__':
